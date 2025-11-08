@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block content %}
+
+<section class="hero hero--compact">
+  <div class="hero-text">
+    <h1>
+      <span class="hero-title-top">Real-Time Face Recognition</span><br>
+      <span class="hero-title-gradient">With Confidence Scoring</span>
+    </h1>
+    <p>Deteksi dan kenali wajah secara real-time langsung dari kamera Anda.</p>
+  </div>
+</section>
+
+<section class="identify-grid">
+  <!-- LEFT: Camera -->
+  <div class="card camera-card">
+    <div class="card-head">
+      <div class="icon-box purple"><i class="fa-solid fa-video"></i></div>
+      <div>
+        <h3>Live Camera Feed</h3>
+        <small class="muted">Face detection and recognition in real-time</small>
+      </div>
+    </div>
+
+    <div class="video-stage">
+      <div class="video-wrap">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <p class="hint" style="text-align:center;margin-top:10px;">
+        Kamera belum aktif. Klik tombol di bawah untuk memulai.
+      </p>
+    </div>
+
+    <button id="startId" class="btn btn-primary full-btn">
+      <i class="fa-solid fa-camera"></i>&nbsp; Open Camera
+    </button>
+  </div>
+
+  <!-- RIGHT: Results -->
+  <div class="right-col">
+    <div class="card">
+      <div class="card-head">
+        <div class="icon-box blue"><i class="fa-solid fa-id-card"></i></div>
+        <h3>Recognition Results</h3>
+      </div>
+      <div class="results-area">
+        <div class="result-placeholder">
+          <i class="fa-regular fa-face-meh"></i>
+          <p>No face detected yet</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="icon-box green"><i class="fa-solid fa-circle-info"></i></div>
+        <h3>How It Works</h3>
+      </div>
+      <p><strong>1. Detection:</strong> Sistem mendeteksi wajah menggunakan <strong>Mediapipe</strong>.</p>
+      <p><strong>2. Embedding:</strong> Fitur wajah diekstraksi menjadi vektor 128 dimensi.</p>
+      <p><strong>3. Classification:</strong> Model <strong>SVM</strong> mengidentifikasi wajah berdasarkan vektor
+        tersebut.</p>
+      <p><strong>4. Output:</strong> Nama pengguna ditampilkan di layar bersama skor kepercayaan.</p>
+    </div>
+  </div>
+</section>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="/static/identify.js"></script>
+
+<style>
+  /* Grid layout */
+  .identify-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto 60px;
+    padding: 0 20px;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: flex-start;
+    text-align: left;
+    margin-bottom: 10px;
+  }
+
+  .muted {
+    opacity: .8;
+  }
+
+  .right-col {
+    display: grid;
+    gap: 20px;
+    align-content: start;
+  }
+
+  .video-stage {
+    background: #0e1221;
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  .video-wrap {
+    position: relative;
+    display: inline-block;
+    margin-top: 12px;
+  }
+
+  #video {
+    width: 640px;
+    height: 480px;
+    border-radius: 12px;
+    background: #000;
+    transform: scaleX(-1);
+    transform-origin: center;
+  }
+
+  #overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 640px;
+    height: 480px;
+    border-radius: 12px;
+    background: transparent;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .full-btn {
+    width: 100%;
+    margin-top: 10px;
+  }
+
+  /* Recognition Results area */
+  .results-area {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px;
+  }
+
+  .result-placeholder {
+    text-align: center;
+    opacity: 0.8;
+  }
+
+  .result-placeholder i {
+    font-size: 48px;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .result-placeholder p {
+    margin-top: 8px;
+    font-size: 0.95rem;
+  }
+
+  /* Face cards */
+  /* Face cards */
+  .face-card {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: 5px solid;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .face-card.green {
+    border-color: #22c55e;
+    background: rgba(34, 197, 94, 0.15);
+  }
+
+  .face-card.orange {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.15);
+  }
+
+  .face-card.red {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+  }
+
+  .face-card.pop {
+    animation: pop 0.3s ease;
+  }
+
+  .face-card h4 {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .face-card p {
+    margin: 2px 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+
+  @keyframes pop {
+    0% {
+      transform: scale(0.95);
+      opacity: 0;
+    }
+
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 980px) {
+    .identify-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}

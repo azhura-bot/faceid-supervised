@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-text">
+        <div class="badge"><i class="fa-solid fa-shield-heart"></i>&nbsp; About the Project</div>
+        <h1>
+            <span class="hero-title-top">FaceID Recognition System</span><br>
+            <span class="hero-title-gradient">A modern, web-based face recognition</span>
+        </h1>
+        <p>
+            Sistem pengenalan wajah real-time yang menggabungkan <strong>computer vision</strong> dan
+            <strong>machine learning</strong> — dibangun dengan <strong>Mediapipe</strong>,
+            <strong>face_recognition</strong> (128-D embeddings), dan <strong>SVM</strong>.
+        </p>
+    </div>
+</section>
+
+<!-- OVERVIEW -->
+<section class="container">
+    <div class="card">
+        <h2 style="margin-top:0">Project Overview</h2>
+        <p>
+            Proyek ini dirancang untuk menghadirkan identifikasi wajah secara <em>real-time</em> melalui antarmuka web
+            yang sederhana.
+            Menggunakan kombinasi <strong>Mediapipe</strong> untuk deteksi wajah, <strong>face_recognition</strong>
+            untuk ekstraksi
+            <em>embedding</em> 128 dimensi, dan <strong>Support Vector Machine (SVM)</strong> untuk klasifikasi yang
+            akurat.
+        </p>
+        <p>
+            Seluruh sistem berjalan ringan di CPU, mudah dipasang, serta cocok untuk skenario demo, edukasi, maupun
+            prototipe produk.
+        </p>
+    </div>
+</section>
+
+<!-- CORE TECHNOLOGIES -->
+<section class="features">
+    <h2>Core Technologies</h2>
+    <div class="feature-grid">
+        <div class="feature-card">
+            <div class="icon-box blue"><i class="fa-solid fa-camera"></i></div>
+            <h3>Mediapipe</h3>
+            <p>Deteksi wajah real-time dan landmark tracking langsung di browser.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon-box purple"><i class="fa-solid fa-brain"></i></div>
+            <h3>face_recognition</h3>
+            <p>Ekstraksi embedding wajah 128-D yang robust (berbasis dlib).</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon-box orange"><i class="fa-solid fa-gear"></i></div>
+            <h3>SVM Classifier</h3>
+            <p>Klasifikasi identitas berbasis SVM yang cepat dan stabil.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon-box green"><i class="fa-solid fa-database"></i></div>
+            <h3>Flask Backend</h3>
+            <p>API ringan untuk pelatihan, identifikasi, dan manajemen dataset.</p>
+        </div>
+    </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="container">
+    <div class="card">
+        <div class="card-head" style="margin-bottom:16px">
+            <div class="icon-box purple"><i class="fa-solid fa-diagram-project"></i></div>
+            <h3 style="margin:0">How It Works</h3>
+        </div>
+
+        <ol class="steps-vertical">
+            <li>
+                <span class="num">1</span>
+                <div>
+                    <strong>Face Detection</strong>
+                    <p>Mediapipe menganalisis frame video dan mendeteksi wajah secara real-time.</p>
+                </div>
+            </li>
+            <li>
+                <span class="num">2</span>
+                <div>
+                    <strong>Feature Extraction</strong>
+                    <p>Library <code>face_recognition</code> mengekstrak embedding 128-D dari wajah terdeteksi.</p>
+                </div>
+            </li>
+            <li>
+                <span class="num">3</span>
+                <div>
+                    <strong>SVM Classification</strong>
+                    <p>Embedding dimasukkan ke model <strong>SVM</strong> yang telah dilatih untuk memprediksi
+                        identitas.</p>
+                </div>
+            </li>
+            <li>
+                <span class="num">4</span>
+                <div>
+                    <strong>Result Display</strong>
+                    <p>Nama/label ditampilkan di overlay video. Jika jarak &gt; threshold, ditandai sebagai
+                        <em>Unknown</em>.</p>
+                </div>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<!-- KEY FEATURES -->
+<section class="container">
+    <div class="card">
+        <div class="card-head" style="margin-bottom:8px">
+            <div class="icon-box green"><i class="fa-solid fa-bolt"></i></div>
+            <h3 style="margin:0">Key Features</h3>
+        </div>
+
+        <div class="kf-grid">
+            <ul class="kf-list">
+                <li><i class="fa-solid fa-check"></i> Real-time face detection (Mediapipe)</li>
+                <li><i class="fa-solid fa-check"></i> 128-D facial embeddings (face_recognition)</li>
+                <li><i class="fa-solid fa-check"></i> SVM with tunable unknown threshold</li>
+                <li><i class="fa-solid fa-check"></i> Works smoothly on CPU</li>
+            </ul>
+            <ul class="kf-list">
+                <li><i class="fa-solid fa-check"></i> Web-based interface & overlay</li>
+                <li><i class="fa-solid fa-check"></i> Simple registration → training workflow</li>
+                <li><i class="fa-solid fa-check"></i> Lightweight API (Flask, JSON)</li>
+                <li><i class="fa-solid fa-check"></i> Easy to deploy & extend</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- TECHNOLOGY STACK -->
+<section class="container">
+    <div class="card">
+        <h3 style="margin-top:0">Technology Stack</h3>
+        <div class="stack-grid">
+            <div>
+                <h4><span class="dot dot-green"></span> Frontend</h4>
+                <ul class="stack-list">
+                    <li>HTML, CSS</li>
+                    <li>Vanilla JS (Mediapipe on client)</li>
+                </ul>
+            </div>
+            <div>
+                <h4><span class="dot dot-blue"></span> Backend</h4>
+                <ul class="stack-list">
+                    <li>Flask (Python)</li>
+                    <li>face_recognition</li>
+                    <li>scikit-learn (SVM)</li>
+                    <li>OpenCV</li>
+                </ul>
+            </div>  
+        </div>
+    </div>
+</section>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+{% endblock %}

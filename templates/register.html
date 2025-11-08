@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- ===== Page Header ===== -->
+<section class="hero hero--compact">
+  <div class="hero-text">
+    <h1>
+      <span class="hero-title-top">Register Faces</span><br>
+      <span class="hero-title-gradient">Capture & Train the Model</span>
+    </h1>
+    <p>Posisikan wajah di area kamera, ambil beberapa sudut pandang, lalu latih model pengenalan.</p>
+  </div>
+</section>
+
+<!-- ===== 2-Column Layout ===== -->
+<section class="reg-grid">
+  <!-- Left: Camera Card -->
+  <div class="card camera-card">
+    <div class="card-head">
+      <div class="icon-box purple"><i class="fa-solid fa-camera"></i></div>
+      <div>
+        <h3 style="margin:0">Camera Feed</h3>
+        <small class="muted">Posisikan wajah dalam bingkai dan ambil beberapa angle</small>
+      </div>
+    </div>
+
+    <div class="video-stage">
+      <div class="video-wrap">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <p class="hint" style="text-align:center;margin-top:10px">
+        Instruksi: Lihat lurus (depan), kemudian kanan, kiri, dan berkedip saat diminta.
+      </p>
+    </div>
+  </div>
+
+  <!-- Right: Controls + Dataset -->
+  <div class="right-col">
+    <!-- Controls -->
+    <div class="card">
+      <div class="card-head">
+        <div class="icon-box blue"><i class="fa-solid fa-sliders"></i></div>
+        <h3 style="margin:0">Registration Controls</h3>
+      </div>
+
+      <label class="stack">
+        <span>Nama</span>
+        <input id="name" type="text" placeholder="Masukkan nama" />
+      </label>
+
+      <div class="btn-row">
+        <button id="startReg" class="btn btn-primary">
+          <i class="fa-solid fa-camera"></i>&nbsp; Start Capture
+        </button>
+        <button id="train" class="btn btn-secondary" disabled>
+          <i class="fa-solid fa-plus"></i>&nbsp; Train Model
+        </button>
+      </div>
+
+      <div id="stepInfo" class="steps"></div>
+    </div>
+
+    <!-- Dataset Management -->
+    <div class="card">
+      <div class="card-head">
+        <div class="icon-box green"><i class="fa-solid fa-database"></i></div>
+        <h3 style="margin:0">Dataset Management</h3>
+      </div>
+
+      <div class="dataset-tools">
+        <div id="datasetList" class="dataset-list"></div>
+
+        <label class="stack" style="margin-top:12px">
+          <span>Hapus berdasarkan nama</span>
+          <div class="delete-row">
+            <input id="delName" placeholder="mis. John Doe" />
+            <button class="btn btn-danger" title="Delete"
+              onclick="deleteByName(document.getElementById('delName').value)">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Local layout helpers (CSS kecil khusus halaman ini) ===== -->
+<style>
+  .hero--compact {
+    padding: 60px 20px 30px;
+  }
+
+  .reg-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 24px;
+    padding: 0 20px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+    margin-top: 10px;
+    margin-bottom: 5px;
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .muted {
+    opacity: .8;
+  }
+
+  .video-stage {
+    background: #0e1221;
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+
+  .right-col {
+    display: grid;
+    gap: 20px;
+    align-content: start;
+  }
+
+  .stack span {
+    display: block;
+    font-size: .9rem;
+    opacity: .85;
+    margin-bottom: 6px;
+  }
+
+  .stack input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, .12);
+    background: #0f1533;
+    color: var(--fg);
+  }
+
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0 6px;
+  }
+
+  .dataset-tools .delete-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+
+  .btn-danger {
+    background: #2a1220;
+    border: 1px solid #ef4444;
+    color: #ffdedf;
+  }
+
+  .btn-danger:hover {
+    background: #3a1a28;
+  }
+
+  /* Responsif */
+  @media (max-width: 980px) {
+    .reg-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+<script src="/static/register.js"></script>
+{% endblock %}

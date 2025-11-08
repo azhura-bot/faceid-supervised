@@ -1,0 +1,27 @@
+# Ignore virtual environments
+.venv/
+venv/
+
+# Python cache & build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.egg-info/
+build/
+dist/
+
+# Models & large files
+models/
+*.pkl
+*.dat
+
+# IDE files
+.vscode/
+.idea/
+
+# System
+.DS_Store
+Thumbs.db

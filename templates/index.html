@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="hero-text">
+    <h1>
+      <span class="hero-title-top">Real-Time Face</span><br>
+      <span class="hero-title-gradient">Recognition on the Web</span>
+    </h1>
+    <p>
+      Sistem pengenalan wajah berbasis <strong>Mediapipe</strong> dan
+      <strong>Support Vector Machine (SVM)</strong> dengan <strong>face_recognition</strong>.
+      Jalankan deteksi dan identifikasi wajah langsung dari browser Anda.
+    </p>
+    <div class="hero-buttons">
+      <a href="/identify" class="btn btn-primary">Identify Face</a>
+      <a href="/register" class="btn btn-secondary">Register New Face</a>
+      <button class="btn btn-outline" onclick="trainModel()">Training Data</button>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <h2>Fitur Unggulan</h2>
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="icon-box purple"><i class="fa-solid fa-camera"></i></div>
+      <h3>Real-time Webcam Overlay</h3>
+      <p>Gunakan <strong>Mediapipe</strong> untuk mendeteksi wajah secara real-time langsung dari kamera.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="icon-box blue"><i class="fa-solid fa-brain"></i></div>
+      <h3>128-D Face Embedding</h3>
+      <p>Ekstraksi fitur wajah dalam bentuk vektor berdimensi 128 untuk identifikasi yang akurat.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="icon-box green"><i class="fa-solid fa-gear"></i></div>
+      <h3>Support Vector Machine (SVM)</h3>
+      <p>Model klasifikasi berbasis SVM memberikan hasil pengenalan yang stabil dan efisien.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="icon-box orange"><i class="fa-solid fa-bolt"></i></div>
+      <h3>Lightweight & Fast</h3>
+      <p>Berjalan sepenuhnya di CPU dengan performa cepat dan penggunaan sumber daya minimal.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how-it-works">
+  <h2>Bagaimana Cara Kerjanya</h2>
+  <div class="timeline">
+    <div class="timeline-line"></div>
+
+    <div class="timeline-step">
+      <div class="dot">1</div>
+      <h4>Detection</h4>
+      <p>Mediapipe mendeteksi posisi wajah secara real-time dari video kamera.</p>
+    </div>
+
+    <div class="timeline-step">
+      <div class="dot">2</div>
+      <h4>Embedding</h4>
+      <p>face_recognition mengekstraksi embedding 128 dimensi dari wajah yang terdeteksi.</p>
+    </div>
+
+    <div class="timeline-step">
+      <div class="dot">3</div>
+      <h4>Classification</h4>
+      <p>SVM memprediksi identitas berdasarkan embedding wajah yang telah diekstrak.</p>
+    </div>
+
+    <div class="timeline-step">
+      <div class="dot">4</div>
+      <h4>Output</h4>
+      <p>Sistem menampilkan nama atau status "Unknown" di layar kamera Anda.</p>
+    </div>
+  </div>
+</section>
+
+<section class="about">
+  <h2>Tentang Proyek Ini</h2>
+  <p>
+    Proyek ini menggabungkan <strong>Mediapipe</strong> sebagai pendeteksi wajah dengan
+    <strong>face_recognition</strong> untuk ekstraksi fitur wajah, serta
+    <strong>Support Vector Machine (SVM)</strong> untuk klasifikasi identitas. Sistem ini
+    dibangun dengan <strong>Python (Flask)</strong> dan dioptimalkan untuk berjalan secara real-time di web.
+  </p>
+  <div class="about-tags">
+    <span class="tag ok">CPU Optimized</span>
+    <span class="tag ok">Real-Time Processing</span>
+    <span class="tag warn">Lightweight Design</span>
+  </div>
+</section>
+
+<script>
+async function trainModel() {
+  const res = await fetch('/api/train', { method: 'POST' });
+  const j = await res.json();
+  if (j.ok) alert(`Model trained successfully: ${j.classes.length} classes`);
+  else alert(j.error || 'Training failed');
+}
+</script>
+{% endblock %}
