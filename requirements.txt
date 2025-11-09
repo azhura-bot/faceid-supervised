@@ -1,9 +1,11 @@
 flask
 gunicorn
 opencv-python-headless
-face-recognition
+dlib==19.24.4
+face-recognition==1.3.0
+face-recognition-models==0.3.0
 scikit-learn
-numpy
+numpy==1.26.4
 scipy
 supabase
 python-dotenv
