@@ -23,7 +23,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 
-THRESHOLD = 0.2
 DS_LOCK = threading.Lock()
 TRAIN_STATUS = {
     "running": False,
@@ -260,9 +259,6 @@ def api_identify():
             idx = int(np.argmax(pred))
             confidence = float(np.max(pred))
             name = le.inverse_transform([idx])[0]
-
-            if confidence < THRESHOLD:
-                name = "Unknown"
 
             results.append({
                 "top": int(top), "right": int(right),
