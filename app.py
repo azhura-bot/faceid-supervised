@@ -25,6 +25,12 @@ app = Flask(__name__)
 
 THRESHOLD = 0.60
 DS_LOCK = threading.Lock()
+TRAIN_STATUS = {
+    "running": False,
+    "done": False,
+    "error": None,
+    "result": None
+}
 
 # ---------- Helpers ----------
 def b64_to_image(b64_data: str):
@@ -180,48 +186,83 @@ def api_register_frame():
 # ---------- Training & Evaluasi ----------
 @app.post("/api/train")
 def api_train():
-    X, y = load_dataset()
-    if len(y) == 0:
-        return jsonify({"ok": False, "error": "Dataset kosong."}), 400
-    if len(set(y)) < 2:
-        return jsonify({"ok": False, "error": "Minimal 2 kelas."}), 400
+    global TRAIN_STATUS
+    if TRAIN_STATUS["running"]:
+        return jsonify({"ok": False, "error": "Training sedang berjalan."}), 400
 
-    le = LabelEncoder()
-    y_enc = le.fit_transform(y)
-    X_train, X_test, y_train, y_test = train_test_split(X, y_enc, test_size=0.3, random_state=42)
+    # Reset status
+    TRAIN_STATUS = {"running": True, "done": False, "error": None, "result": None}
 
-    kernels = ['linear', 'rbf', 'poly']
-    results = {}
+    def background_train():
+        global TRAIN_STATUS
+        try:
+            X, y = load_dataset()
+            if len(y) == 0:
+                raise ValueError("Dataset kosong.")
+            if len(set(y)) < 2:
+                raise ValueError("Minimal 2 kelas untuk training.")
 
-    for kernel in kernels:
-        start = time.time()
-        model = make_pipeline(StandardScaler(with_mean=False), SVC(kernel=kernel))
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
-        acc = accuracy_score(y_test, y_pred)
-        duration = time.time() - start
-        results[kernel] = {
-            "accuracy": round(acc * 100, 2),
-            "train_time_sec": round(duration, 3)
-        }
+            le = LabelEncoder()
+            y_enc = le.fit_transform(y)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y_enc, test_size=0.3, random_state=42
+            )
 
-    best_kernel = max(results, key=lambda k: results[k]["accuracy"])
-    best_model = make_pipeline(StandardScaler(with_mean=False), SVC(kernel=best_kernel))
-    best_model.fit(X, y_enc)
+            kernels = ['linear', 'rbf', 'poly']
+            results = {}
 
-    os.makedirs("models", exist_ok=True)
-    with open("models/svm.pkl", "wb") as f:
-        pickle.dump({"pipeline": best_model, "label_encoder": le}, f)
+            for kernel in kernels:
+                start = time.time()
+                model = make_pipeline(StandardScaler(with_mean=False), SVC(kernel=kernel))
+                model.fit(X_train, y_train)
+                y_pred = model.predict(X_test)
+                acc = accuracy_score(y_test, y_pred)
+                duration = time.time() - start
+                results[kernel] = {
+                    "accuracy": round(acc * 100, 2),
+                    "train_time_sec": round(duration, 3)
+                }
 
-    avg_acc = np.mean([r["accuracy"] for r in results.values()])
+            best_kernel = max(results, key=lambda k: results[k]["accuracy"])
+            best_model = make_pipeline(StandardScaler(with_mean=False), SVC(kernel=best_kernel))
+            best_model.fit(X, y_enc)
+
+            os.makedirs("models", exist_ok=True)
+            with open("models/svm.pkl", "wb") as f:
+                pickle.dump({"pipeline": best_model, "label_encoder": le}, f)
+
+            avg_acc = np.mean([r["accuracy"] for r in results.values()])
+
+            TRAIN_STATUS["result"] = {
+                "classes": list(le.classes_),
+                "kernels": results,
+                "best_kernel": best_kernel,
+                "best_acc": results[best_kernel]["accuracy"],
+                "avg_acc": round(avg_acc, 2)
+            }
+            TRAIN_STATUS["done"] = True
+            TRAIN_STATUS["running"] = False
+        except Exception as e:
+            TRAIN_STATUS["error"] = str(e)
+            TRAIN_STATUS["running"] = False
+            TRAIN_STATUS["done"] = True
+
+    # Jalankan thread training
+    threading.Thread(target=background_train, daemon=True).start()
+
+    return jsonify({"ok": True, "message": "Training dimulai di background"})
+
+@app.get("/api/train_status")
+def api_train_status():
+    global TRAIN_STATUS
     return jsonify({
         "ok": True,
-        "classes": list(le.classes_),
-        "kernels": results,
-        "best_kernel": best_kernel,
-        "best_acc": results[best_kernel]["accuracy"],
-        "avg_acc": round(avg_acc, 2)
+        "running": TRAIN_STATUS["running"],
+        "done": TRAIN_STATUS["done"],
+        "error": TRAIN_STATUS["error"],
+        "result": TRAIN_STATUS["result"]
     })
+
 
 # ---------- Identifikasi (pakai SVM) ----------
 @app.post("/api/identify")

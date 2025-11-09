@@ -53,12 +53,29 @@
         <button id="startReg" class="btn btn-primary">
           <i class="fa-solid fa-camera"></i>&nbsp; Start Capture
         </button>
-        <button id="train" class="btn btn-secondary" disabled>
-          <i class="fa-solid fa-plus"></i>&nbsp; Train Model
-        </button>
       </div>
 
       <div id="stepInfo" class="steps"></div>
+    </div>
+
+    <!-- Model Training -->
+    <div class="card" id="trainCard">
+      <div class="card-head">
+        <div class="icon-box orange"><i class="fa-solid fa-brain"></i></div>
+        <h3 style="margin:0">Model Training</h3>
+      </div>
+
+      <p class="muted">Latih ulang model pengenalan wajah menggunakan data yang sudah diregistrasikan.</p>
+
+      <div class="btn-row">
+        <button id="trainModelBtn" class="btn btn-primary">
+          <i class="fa-solid fa-play"></i>&nbsp; Start Training
+        </button>
+      </div>
+
+      <div id="trainStatus" class="train-status">
+        <span class="tag warn">Belum ada proses training.</span>
+      </div>
     </div>
 
     <!-- Dataset Management -->
@@ -88,9 +105,7 @@
 
 <!-- ===== Local layout helpers (CSS kecil khusus halaman ini) ===== -->
 <style>
-  .hero--compact {
-    padding: 60px 20px 30px;
-  }
+  .hero--compact { padding: 60px 20px 30px; }
 
   .reg-grid {
     display: grid;
@@ -99,8 +114,6 @@
     padding: 0 20px 60px;
     max-width: 1200px;
     margin: 0 auto;
-    margin-top: 10px;
-    margin-bottom: 5px;
   }
 
   .card-head {
@@ -110,9 +123,7 @@
     margin-bottom: 10px;
   }
 
-  .muted {
-    opacity: .8;
-  }
+  .muted { opacity: .8; }
 
   .video-stage {
     background: #0e1221;
@@ -161,37 +172,30 @@
     color: #ffdedf;
   }
 
-  .btn-danger:hover {
-    background: #3a1a28;
-  }
+  .btn-danger:hover { background: #3a1a28; }
 
-  /* Responsif */
-  @media (max-width: 980px) {
-    .reg-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+  @media (max-width: 980px) { .reg-grid { grid-template-columns: 1fr; } }
 
-  .train-summary {
-    margin-top: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    padding: 10px 14px;
+  .train-status {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
     font-size: 0.9rem;
-    color: #eee;
   }
 
-  .train-summary h4 {
-    margin-bottom: 6px;
-    font-size: 1rem;
-    color: #22c55e;
+  .train-result-card {
+    background: #1b1110;
+    border-left: 3px solid #f97316;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #f3f3f3;
+    margin-top: 10px;
+    font-size: 0.9rem;
   }
 
-  .train-summary ul {
-    margin-top: 6px;
-    padding-left: 20px;
-  }
+  .train-result-card strong { color: #fbbf24; }
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -200,4 +204,5 @@
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
 <script src="/static/register.js"></script>
+
 {% endblock %}

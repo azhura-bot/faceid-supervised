@@ -96,10 +96,41 @@
 
 <script>
 async function trainModel() {
-  const res = await fetch('/api/train', { method: 'POST' });
-  const j = await res.json();
-  if (j.ok) alert(`Model trained successfully: ${j.classes.length} classes`);
-  else alert(j.error || 'Training failed');
+  // 1️⃣ Mulai training
+  const start = await fetch("/api/train", { method: "POST" });
+  const startRes = await start.json();
+  if (!startRes.ok) {
+    alert(startRes.error || "Gagal memulai training");
+    return;
+  }
+
+  alert("⏳ Training dimulai di background. Tunggu sebentar...");
+
+  // 2️⃣ Polling status setiap 3 detik
+  const interval = setInterval(async () => {
+    const status = await fetch("/api/train_status");
+    const j = await status.json();
+    if (!j.ok) return;
+
+    if (j.error) {
+      clearInterval(interval);
+      alert(`❌ Error: ${j.error}`);
+      return;
+    }
+
+    if (j.done && j.result) {
+      clearInterval(interval);
+      const r = j.result;
+      const summary = `
+Training selesai ✅
+Jumlah kelas: ${r.classes.length}
+Kernel terbaik: ${r.best_kernel}
+Akurasi terbaik: ${r.best_acc}%
+Rata-rata akurasi: ${r.avg_acc}%
+`;
+      alert(summary);
+    }
+  }, 3000);
 }
 </script>
 {% endblock %}
