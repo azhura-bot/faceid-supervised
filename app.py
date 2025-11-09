@@ -173,7 +173,6 @@ def api_train():
             kernels = ["linear", "rbf", "poly"]
             results = {}
 
-            # Gunakan 5-fold cross validation
             kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
             for kernel in kernels:
@@ -183,11 +182,9 @@ def api_train():
                     SVC(kernel=kernel, probability=True)
                 )
 
-                # Cross-validation accuracy (rata-rata)
                 acc_scores = cross_val_score(model, X, y_enc, cv=kf, scoring="accuracy")
                 acc_mean = np.mean(acc_scores)
 
-                # Latih model penuh agar bisa disimpan
                 model.fit(X, y_enc)
                 y_pred = model.predict(X)
                 cm = confusion_matrix(y_enc, y_pred)
@@ -257,7 +254,6 @@ def api_identify():
 
         results = []
         for (top, right, bottom, left), enc in zip(boxes, encs):
-            # Jika pipeline tidak punya predict_proba, gunakan decision_function
             if hasattr(clf, "predict_proba"):
                 probs = clf.predict_proba([enc])[0]
                 idx = int(np.argmax(probs))
