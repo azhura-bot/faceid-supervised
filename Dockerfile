@@ -1,17 +1,15 @@
-# Base image ringan
-FROM python:3.10-slim
+# ================================
+# 🧱 STAGE 1: Build Environment
+# ================================
+FROM python:3.10-slim AS builder
 
-# Set working directory
+# Set work directory
 WORKDIR /app
 
-# Copy semua file ke container
-COPY . .
-
-# Install dependency sistem untuk dlib, OpenCV, dan build tools
-RUN apt-get update && apt-get install -y \
+# Install system dependencies for compiling Python wheels (once)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
-    g++ \
     libgl1 \
     libglib2.0-0 \
     libopenblas-dev \
@@ -19,10 +17,36 @@ RUN apt-get update && apt-get install -y \
     libx11-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# Install pip dependencies
-RUN pip install --upgrade pip && \
-    pip install wheel setuptools && \
-    pip install -r requirements.txt
+# Upgrade pip & preinstall dependencies
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
-# Jalankan aplikasi Flask lewat Gunicorn
+# Copy requirements first (for caching)
+COPY requirements.txt .
+
+# Install Python dependencies (using binary wheels only)
+RUN pip install --no-cache-dir --only-binary=:all: -r requirements.txt || \
+    pip install --no-cache-dir -r requirements.txt
+
+# ================================
+# 🧩 STAGE 2: Runtime Image
+# ================================
+FROM python:3.10-slim
+
+# Working directory
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Copy installed packages from builder stage
+COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Install minimal system libs for runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Default command
 CMD gunicorn app:app --bind 0.0.0.0:${PORT:-10000}
