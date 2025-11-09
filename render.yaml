@@ -3,7 +3,7 @@ services:
     name: faceid-supervised
     env: python
     plan: free
-    buildCommand: "pip install -r requirements.lock"
+    buildCommand: "pip install --no-deps -r requirements.lock"
     startCommand: "gunicorn app:app"
     envVars:
       - key: PYTHON_VERSION
