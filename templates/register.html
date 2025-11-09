@@ -196,6 +196,22 @@
   }
 
   .train-result-card strong { color: #fbbf24; }
+    .train-result-list {
+    display: flex;
+    flex-direction: column; /* atau row kalau mau sejajar horizontal */
+    gap: 10px;
+  }
+
+  @media (min-width: 800px) {
+    .train-result-list {
+      flex-direction: row;  /* tampil sejajar di layar lebar */
+      flex-wrap: wrap;
+    }
+    .kernel-card {
+      flex: 1 1 30%;
+      min-width: 220px;
+    }
+  }
 </style>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">

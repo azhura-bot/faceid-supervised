@@ -148,8 +148,6 @@ def api_register_frame():
 
 # ---------- Training ----------
 @app.post("/api/train")
-# ---------- Training ----------
-@app.post("/api/train")
 def api_train():
     global TRAIN_STATUS
     if TRAIN_STATUS["running"]:
@@ -214,9 +212,7 @@ def api_train():
 
             # Simpan hasil akhir
             TRAIN_STATUS["result"] = {
-                "accuracy": results[best_kernel]["accuracy"],
-                "train_time_sec": results[best_kernel]["train_time_sec"],
-                "confusion_matrix": results[best_kernel]["confusion_matrix"]
+                "table": results
             }
 
         except Exception as e:

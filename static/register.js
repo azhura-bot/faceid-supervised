@@ -239,15 +239,37 @@ if (trainModelBtn) {
       }
       clearInterval(interval);
       trainModelBtn.disabled = false;
-      if (j.result) {
-        const r = j.result;
+      if (j.result && j.result.table) {
+        const table = j.result.table;
+        const colors = {
+          linear: "#2563eb", // biru
+          rbf: "#16a34a", // hijau
+          poly: "#f59e0b", // oranye
+        };
+
+        let cards = "";
+        for (const [kernel, vals] of Object.entries(table)) {
+          const color = colors[kernel] || "#64748b";
+          cards += `
+      <div class="kernel-card" style="
+        border-left: 4px solid ${color};
+        background: rgba(255,255,255,0.05);
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        color: #f3f3f3;
+      ">
+        <h4 style="color:${color};margin-bottom:6px;">Kernel: ${kernel.toUpperCase()}</h4>
+        <div><strong>Accuracy:</strong> ${vals.accuracy}%</div>
+        <div><strong>Confusion Matrix:</strong> ${vals.confusion_matrix}%</div>
+        <div><strong>Training Time:</strong> ${vals.train_time_sec} s</div>
+      </div>`;
+        }
+
         trainStatus.innerHTML = `
     <span class="tag ok">✅ Training selesai!</span>
-    <div class="train-result-card">
-      <div><strong>Accuracy:</strong> ${r.accuracy}%</div>
-      <div><strong>Confusion Matrix:</strong> ${r.confusion_matrix}%</div>
-      <div><strong>Training Time:</strong> ${r.train_time_sec} s</div>
-    </div>`;
+    <div class="train-result-list">${cards}</div>
+  `;
       }
     }, 3000);
   });
