@@ -22,8 +22,8 @@ RUN pip install --no-cache-dir \
     flask gunicorn numpy==1.26.4 scipy scikit-learn \
     opencv-python-headless supabase python-dotenv
 
-# ✅ Install prebuilt dlib (from active mirror)
-RUN pip install --no-cache-dir https://github.com/latelee/us-dlib-wheels/releases/download/v19.24.2/dlib-19.24.2-cp310-cp310-manylinux_2_31_x86_64.whl
+# ✅ Install prebuilt dlib (from working mirror)
+RUN pip install --no-cache-dir https://github.com/axelmagn/dlib-prebuilt/releases/download/v19.24.4/dlib-19.24.4-cp310-cp310-manylinux_2_31_x86_64.whl
 
 # ✅ Then install face_recognition
 RUN pip install --no-cache-dir face-recognition==1.3.0 face-recognition-models==0.3.0
