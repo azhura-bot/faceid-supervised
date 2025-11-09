@@ -23,7 +23,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 
-THRESHOLD = 0.85  # ambang batas untuk dianggap "Recognized"
+THRESHOLD = 0
 DS_LOCK = threading.Lock()
 TRAIN_STATUS = {
     "running": False,
