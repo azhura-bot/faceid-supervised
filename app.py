@@ -1,4 +1,6 @@
 import os, base64, pickle, threading, time
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 from dotenv import load_dotenv
 from dataclasses import dataclass
 from typing import List, Tuple
