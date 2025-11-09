@@ -2,7 +2,7 @@ Flask
 numpy
 opencv-python-headless
 dlib-bin==19.24.6
-face-recognition==1.3.0 --no-deps
 scikit-learn
 supabase
 gunicorn
+face-recognition==1.3.0
