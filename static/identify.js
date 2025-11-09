@@ -63,7 +63,7 @@ function drawFaces(faces){
   });
 }
 
-// 🧩 Update panel hasil tanpa animasi kedap-kedip
+// 🧩 Update panel hasil tanpa animasiconfidence kedap-kedip
 function updateResultsPanel(faces){
   if (!faces || !faces.length){
     resultArea.innerHTML = `
@@ -75,13 +75,11 @@ function updateResultsPanel(faces){
     return;
   }
 
-  // 🔹 Cek wajah baru (berdasarkan nama)
   const newNames = faces.map(f => f.name);
   const oldNames = lastFaces.map(f => f.name);
   const isNewFace = newNames.join(',') !== oldNames.join(',');
   lastFaces = faces;
 
-  // 🔹 Update UI
   let html = "";
   faces.forEach(f => {
     const conf = f.confidence ? `${f.confidence.toFixed(1)}%` : "-";
@@ -90,7 +88,9 @@ function updateResultsPanel(faces){
       f.name === "Unknown" ? "red" :
       f.confidence >= 85 ? "green" : "orange";
 
-    // hanya beri animasi kalau wajah baru muncul
+    const detect = f.detect_time ? `${f.detect_time.toFixed(3)} s` : "-";
+    const predict = f.predict_time ? `${f.predict_time.toFixed(3)} s` : "-";
+
     const animClass = isNewFace ? "pop" : "";
 
     html += `
@@ -98,10 +98,13 @@ function updateResultsPanel(faces){
         <h4>${f.name}</h4>
         <p><strong>Confidence:</strong> ${conf}</p>
         <p><strong>Status:</strong> ${status}</p>
+        <p><strong>Detection Time:</strong> ${detect}</p>
+        <p><strong>Prediction Time:</strong> ${predict}</p>
       </div>`;
   });
   resultArea.innerHTML = html;
 }
+
 
 async function tick(){
   if(!running) return;

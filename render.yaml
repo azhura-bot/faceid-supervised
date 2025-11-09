@@ -1,10 +1,5 @@
 services:
   - type: web
     name: faceid-supervised
-    env: python
+    env: docker
     plan: free
-    buildCommand: "pip install --no-deps -r requirements.lock"
-    startCommand: "gunicorn app:app"
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.10.14

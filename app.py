@@ -1,13 +1,15 @@
-import os, base64, pickle, threading
+import os, base64, pickle, threading, time
 from dotenv import load_dotenv
 from dataclasses import dataclass
 from typing import List, Tuple
 import numpy as np
 from flask import Flask, render_template, request, jsonify
 import cv2, face_recognition
-from sklearn.svm import LinearSVC
+from sklearn.svm import SVC, LinearSVC
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.pipeline import make_pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 from supabase import create_client, Client
 
 load_dotenv()
@@ -173,7 +175,7 @@ def api_register_frame():
         "done": done
     })
 
-# ---------- Training ----------
+# ---------- Training & Evaluasi ----------
 @app.post("/api/train")
 def api_train():
     X, y = load_dataset()
@@ -184,13 +186,40 @@ def api_train():
 
     le = LabelEncoder()
     y_enc = le.fit_transform(y)
-    clf = make_pipeline(StandardScaler(with_mean=False), LinearSVC())
-    clf.fit(X, y_enc)
+    X_train, X_test, y_train, y_test = train_test_split(X, y_enc, test_size=0.3, random_state=42)
+
+    kernels = ['linear', 'rbf', 'poly']
+    results = {}
+
+    for kernel in kernels:
+        start = time.time()
+        model = make_pipeline(StandardScaler(with_mean=False), SVC(kernel=kernel))
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        duration = time.time() - start
+        results[kernel] = {
+            "accuracy": round(acc * 100, 2),
+            "train_time_sec": round(duration, 3)
+        }
+
+    best_kernel = max(results, key=lambda k: results[k]["accuracy"])
+    best_model = make_pipeline(StandardScaler(with_mean=False), SVC(kernel=best_kernel))
+    best_model.fit(X, y_enc)
 
     os.makedirs("models", exist_ok=True)
     with open("models/svm.pkl", "wb") as f:
-        pickle.dump({"pipeline": clf, "label_encoder": le}, f)
-    return jsonify({"ok": True, "classes": list(le.classes_)})
+        pickle.dump({"pipeline": best_model, "label_encoder": le}, f)
+
+    avg_acc = np.mean([r["accuracy"] for r in results.values()])
+    return jsonify({
+        "ok": True,
+        "classes": list(le.classes_),
+        "kernels": results,
+        "best_kernel": best_kernel,
+        "best_acc": results[best_kernel]["accuracy"],
+        "avg_acc": round(avg_acc, 2)
+    })
 
 # ---------- Identifikasi (pakai SVM) ----------
 @app.post("/api/identify")
@@ -203,7 +232,6 @@ def api_identify():
         if img is None:
             return jsonify({"ok": False, "error": "Gagal decode gambar"}), 400
 
-        # pastikan model tersedia
         model_path = "models/svm.pkl"
         if not os.path.exists(model_path):
             return jsonify({"ok": False, "error": "Model belum dilatih. Jalankan /api/train dulu."}), 400
@@ -212,24 +240,29 @@ def api_identify():
             model_data = pickle.load(f)
         clf = model_data["pipeline"]; le = model_data["label_encoder"]
 
+        start_detect = time.time()
         boxes, encs = compute_embedding(img)
+        detect_time = time.time() - start_detect
+
         if len(boxes) == 0 or len(encs) == 0:
             return jsonify({"ok": True, "faces": []})
 
         results = []
         for (top, right, bottom, left), enc in zip(boxes, encs):
-            try:
-                pred = clf.decision_function([enc])
-                idx = int(np.argmax(pred))
-                name = le.inverse_transform([idx])[0]
-                confidence = float(np.max(pred))
-            except Exception:
-                name = "Unknown"; confidence = 0.0
+            start_pred = time.time()
+            pred = clf.decision_function([enc])
+            pred_time = time.time() - start_pred
+            idx = int(np.argmax(pred))
+            name = le.inverse_transform([idx])[0]
+            confidence = float(np.max(pred))
 
             results.append({
                 "top": int(top), "right": int(right),
                 "bottom": int(bottom), "left": int(left),
-                "name": name, "confidence": round(confidence, 2)
+                "name": name,
+                "confidence": round(confidence, 2),
+                "detect_time": round(detect_time, 3),
+                "predict_time": round(pred_time, 3)
             })
 
         return jsonify({"ok": True, "faces": results})
@@ -243,13 +276,25 @@ def compute_embedding(img_bgr):
     encs = face_recognition.face_encodings(rgb, boxes)
     return boxes, encs
 
-# ---------- Dataset ----------
+# ---------- Statistik Dataset ----------
+@app.get("/api/stats")
+def api_stats():
+    data = supabase.table("embeddings").select("*").execute().data or []
+    total_embeddings = len(data)
+    unique_subjects = len(set(d["name"] for d in data))
+    return jsonify({
+        "ok": True,
+        "total_embeddings": total_embeddings,
+        "unique_subjects": unique_subjects
+    })
+
 @app.get("/api/embeddings")
 def api_embeddings_list():
     items = list_embeddings()
     unique_names = sorted(set(r["name"] for r in items if r.get("name")))
     return jsonify({"ok": True, "names": unique_names})
 
+# ---------- Hapus Embedding ----------
 @app.delete("/api/embeddings")
 def api_embeddings_delete():
     data = request.get_json(silent=True) or {}

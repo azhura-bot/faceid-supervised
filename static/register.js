@@ -46,7 +46,7 @@ function pointsFrom(lms, idxs, W, H) {
 function drawEllipseFromPoints(
   ctx,
   pts,
-  style = { stroke: "#22c55e", width: 2 }
+  style = { stroke: "#8B5CF6", width: 2 }
 ) {
   if (!pts.length) return;
   let minX = Infinity,
@@ -65,7 +65,7 @@ function drawEllipseFromPoints(
   const ry = Math.max(4, (maxY - minY) / 2);
   ctx.save();
   ctx.lineWidth = style.width || 2;
-  ctx.strokeStyle = style.stroke || "#22c55e";
+  ctx.strokeStyle = style.stroke || "#8B5CF6";
   ctx.beginPath();
   if (ctx.ellipse) {
     ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
@@ -162,7 +162,7 @@ async function openCamera() {
       // const ys = lms.map(p=>p.y*H);
       // const left=Math.max(0,Math.min(...xs)), right=Math.min(W,Math.max(...xs));
       // const top=Math.max(0,Math.min(...ys)), bottom=Math.min(H,Math.max(...ys));
-      // ctx.lineWidth = 1.5; ctx.strokeStyle = '#22c55e';
+      // ctx.lineWidth = 1.5; ctx.strokeStyle = '#8B5CF6';
       // if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(left, top, right-left, bottom-top, 10); ctx.stroke(); }
       // else { ctx.strokeRect(left, top, right-left, bottom-top); }
     });
@@ -333,8 +333,31 @@ trainBtn.addEventListener("click", async () => {
     trainBtn.disabled = false;
     return;
   }
-  stepInfo.innerHTML += ` <span class="tag ok">Model dilatih (${j.classes.length} kelas)</span>`;
+
+  const summary = `
+    <div class="train-summary">
+      <h4>Training Summary</h4>
+      <p><strong>Jumlah kelas:</strong> ${j.classes.length}</p>
+      <p><strong>Kernel terbaik:</strong> ${j.best_kernel}</p>
+      <p><strong>Akurasi terbaik:</strong> ${j.best_acc}%</p>
+      <p><strong>Rata-rata akurasi:</strong> ${j.avg_acc}%</p>
+      <p><strong>Semua kernel:</strong></p>
+      <ul>
+        ${Object.entries(j.kernels)
+          .map(
+            ([k, v]) =>
+              `<li>${k.toUpperCase()}: ${v.accuracy}% (waktu: ${v.train_time_sec}s)</li>`
+          )
+          .join("")}
+      </ul>
+    </div>`;
+
+  stepInfo.innerHTML = `
+    <span class="tag ok">✅ Model berhasil dilatih (${j.classes.length} kelas)</span>
+    ${summary}
+  `;
 });
+
 
 // mini tools (opsional)
 window.listDataset = async () => {

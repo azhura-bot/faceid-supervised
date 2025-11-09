@@ -1,0 +1,22 @@
+# Base image ringan
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Copy semua file ke container
+COPY . .
+
+# Install dependency sistem minimal
+RUN apt-get update && apt-get install -y \
+    cmake \
+    libgl1 \
+    libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/*
+
+# Install pip dependencies
+RUN pip install --upgrade pip && \
+    pip install -r requirements.txt
+
+# Jalankan aplikasi Flask lewat Gunicorn
+CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000"]
