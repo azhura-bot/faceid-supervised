@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from dataclasses import dataclass
 from typing import List, Tuple
 import numpy as np
+from collections import deque, Counter
 from flask import Flask, render_template, request, jsonify
 import cv2, face_recognition
 from sklearn.svm import SVC
@@ -23,6 +24,9 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 
+STABILIZER_HISTORY = {}  
+MAX_HISTORY = 5          
+THRESHOLD = 70           
 DS_LOCK = threading.Lock()
 TRAIN_STATUS = {
     "running": False,
@@ -231,6 +235,7 @@ def api_identify():
         img_b64 = request.json.get("image")
         if not img_b64:
             return jsonify({"ok": False, "error": "Frame kosong"}), 400
+
         img = b64_to_image(img_b64)
         if img is None:
             return jsonify({"ok": False, "error": "Gagal decode gambar"}), 400
@@ -239,6 +244,7 @@ def api_identify():
         if not os.path.exists(model_path):
             return jsonify({"ok": False, "error": "Model belum dilatih. Jalankan /api/train dulu."}), 400
 
+        # 🔹 Load model
         with open(model_path, "rb") as f:
             model_data = pickle.load(f)
         clf = model_data["pipeline"]
@@ -248,32 +254,55 @@ def api_identify():
         boxes, encs = compute_embedding(img)
         detect_time = time.time() - start_detect
 
+        # Tidak ada wajah
         if len(boxes) == 0 or len(encs) == 0:
             return jsonify({"ok": True, "faces": []})
 
         results = []
+
         for (top, right, bottom, left), enc in zip(boxes, encs):
             start_pred = time.time()
-            pred = clf.predict_proba([enc])[0]
+
+            # 🔹 Gunakan probabilitas untuk confidence
+            probs = clf.predict_proba([enc])[0]
             pred_time = time.time() - start_pred
-            idx = int(np.argmax(pred))
-            confidence = float(np.max(pred))
+
+            idx = int(np.argmax(probs))
             name = le.inverse_transform([idx])[0]
+            confidence = float(np.max(probs)) * 100
+
+            # 🔹 Simpan history untuk smoothing
+            if name not in STABILIZER_HISTORY:
+                STABILIZER_HISTORY[name] = deque(maxlen=MAX_HISTORY)
+            STABILIZER_HISTORY[name].append(confidence)
+
+            # Rata-rata smoothing confidence
+            smooth_conf = np.mean(STABILIZER_HISTORY[name])
+
+            # Majority voting untuk nama dominan
+            votes = Counter()
+            for n, confs in STABILIZER_HISTORY.items():
+                votes[n] = np.mean(confs)
+            stable_name = votes.most_common(1)[0][0]
+
+            # 🔹 Threshold: jika kurang dari ambang → Unknown
+            final_name = stable_name if smooth_conf >= THRESHOLD else "Unknown"
 
             results.append({
                 "top": int(top), "right": int(right),
                 "bottom": int(bottom), "left": int(left),
-                "name": name,
-                "confidence": round(confidence * 100, 1),
+                "name": final_name,
+                "confidence": round(smooth_conf, 1),
                 "detect_time": round(detect_time, 3),
                 "predict_time": round(pred_time, 3)
             })
 
         return jsonify({"ok": True, "faces": results})
+
     except Exception as e:
         print("❌ Error /api/identify:", e)
         return jsonify({"ok": False, "error": str(e)}), 500
-
+    
 def compute_embedding(img_bgr):
     rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     boxes = face_recognition.face_locations(rgb, model="hog")
