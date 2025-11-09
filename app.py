@@ -23,7 +23,7 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 app = Flask(__name__)
 
-THRESHOLD = 0
+THRESHOLD = 0.2
 DS_LOCK = threading.Lock()
 TRAIN_STATUS = {
     "running": False,
