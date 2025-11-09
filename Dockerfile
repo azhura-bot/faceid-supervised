@@ -1,52 +1,42 @@
-# ================================
-# 🧱 STAGE 1: Build Environment
-# ================================
-FROM python:3.10-slim AS builder
+# ===============================
+# ⚡ Fast & Lightweight Build for Render
+# ===============================
+FROM python:3.10-slim
 
-# Set work directory
 WORKDIR /app
 
-# Install system dependencies for compiling Python wheels (once)
+# Install system dependencies only for runtime (no compilers)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
     libgl1 \
     libglib2.0-0 \
     libopenblas-dev \
     liblapack-dev \
-    libx11-dev \
  && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip & preinstall dependencies
+# Upgrade pip & wheel
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools
 
-# Copy requirements first (for caching)
+# Copy requirements first
 COPY requirements.txt .
 
-# Install Python dependencies (using binary wheels only)
-RUN pip install --no-cache-dir --only-binary=:all: -r requirements.txt || \
-    pip install --no-cache-dir -r requirements.txt
+# ✅ Preinstall from prebuilt wheels only (avoid compiling dlib)
+RUN pip install --no-cache-dir --only-binary=:all: \
+    numpy==1.26.4 \
+    scipy \
+    scikit-learn \
+    opencv-python-headless \
+    flask \
+    gunicorn \
+    supabase \
+    python-dotenv
 
-# ================================
-# 🧩 STAGE 2: Runtime Image
-# ================================
-FROM python:3.10-slim
-
-# Working directory
-WORKDIR /app
+# ✅ Install face-recognition from GitHub (includes prebuilt dlib wheel)
+RUN pip install --no-cache-dir \
+    "git+https://github.com/ageitgey/face_recognition.git" \
+    "git+https://github.com/ageitgey/face_recognition_models.git"
 
 # Copy project files
 COPY . .
-
-# Copy installed packages from builder stage
-COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Install minimal system libs for runtime
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1 \
-    libglib2.0-0 \
- && rm -rf /var/lib/apt/lists/*
 
 # Default command
 CMD gunicorn app:app --bind 0.0.0.0:${PORT:-10000}
