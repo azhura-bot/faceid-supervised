@@ -3,14 +3,14 @@ from dotenv import load_dotenv
 from dataclasses import dataclass
 from typing import List, Tuple
 import numpy as np
-from collections import deque, Counter
+from collections import deque
 from flask import Flask, render_template, request, jsonify
 import cv2, face_recognition
 from sklearn.svm import SVC
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.pipeline import make_pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import confusion_matrix
 from supabase import create_client, Client
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -30,6 +30,10 @@ THRESHOLD = 70
 DS_LOCK = threading.Lock()
 TRAIN_STATUS = {"running": False, "done": False, "error": None, "result": None}
 
+MODEL_PATH = "models/svm.pkl"
+
+
+
 # ---------- Helpers ----------
 def b64_to_image(b64_data: str):
     if "," in b64_data:
@@ -38,11 +42,14 @@ def b64_to_image(b64_data: str):
     img_array = np.frombuffer(img_bytes, dtype=np.uint8)
     return cv2.imdecode(img_array, cv2.IMREAD_COLOR)
 
+
 def compute_embedding(img_bgr):
     rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
     boxes = face_recognition.face_locations(rgb, model="hog")
     encs = face_recognition.face_encodings(rgb, boxes)
     return boxes, encs
+
+
 
 # ---------- Supabase Wrappers ----------
 def load_dataset() -> Tuple[np.ndarray, np.ndarray]:
@@ -54,25 +61,35 @@ def load_dataset() -> Tuple[np.ndarray, np.ndarray]:
         y = np.array([r["name"] for r in data], dtype=object)
         return X, y
 
+
 def append_embedding(name: str, enc: np.ndarray):
     with DS_LOCK:
         rec = {"name": name, "embedding": enc.tolist()}
         supabase.table("embeddings").insert(rec).execute()
 
+
 def delete_embeddings(by_id=None, by_name=None) -> int:
     with DS_LOCK:
-        if by_id:
-            res = supabase.table("embeddings").delete().eq("id", by_id).execute()
-        elif by_name:
+        if by_name:
             res = supabase.table("embeddings").delete().eq("name", by_name).execute()
+        elif by_id:
+            res = supabase.table("embeddings").delete().eq("id", by_id).execute()
         else:
             return 0
+
+        # === FIX: Hapus model lama supaya nama lama hilang dari SVM ===
+        if os.path.exists(MODEL_PATH):
+            os.remove(MODEL_PATH)
+
         return len(res.data or [])
+
 
 def list_embeddings():
     with DS_LOCK:
         res = supabase.table("embeddings").select("id,name,ts").execute()
         return res.data or []
+
+
 
 # ---------- Pages ----------
 @app.get("/")
@@ -87,6 +104,8 @@ def identify_page(): return render_template("identify.html")
 @app.get("/about")
 def about_page(): return render_template("about.html")
 
+
+
 # ---------- Registrasi ----------
 @dataclass
 class RegState:
@@ -100,6 +119,7 @@ class RegState:
 
 reg_session: RegState | None = None
 
+
 @app.post("/api/start_register")
 def api_start_register():
     global reg_session
@@ -108,6 +128,7 @@ def api_start_register():
         return jsonify({"ok": False, "error": "Nama wajib diisi"}), 400
     reg_session = RegState(name=name)
     return jsonify({"ok": True, "step": reg_session.step, "need": reg_session.need, "got": reg_session.got})
+
 
 @app.post("/api/register_frame")
 def api_register_frame():
@@ -146,6 +167,8 @@ def api_register_frame():
                     "step": reg_session.step, "need": reg_session.need,
                     "got": reg_session.got, "done": done})
 
+
+
 # ---------- Training ----------
 @app.post("/api/train")
 def api_train():
@@ -158,9 +181,6 @@ def api_train():
     def background_train():
         global TRAIN_STATUS
         try:
-            from sklearn.metrics import accuracy_score, confusion_matrix, make_scorer
-            from sklearn.model_selection import StratifiedKFold, cross_val_score
-
             X, y = load_dataset()
             if len(y) == 0:
                 raise ValueError("Dataset kosong.")
@@ -181,7 +201,6 @@ def api_train():
                     StandardScaler(with_mean=False),
                     SVC(kernel=kernel, probability=True)
                 )
-
                 acc_scores = cross_val_score(model, X, y_enc, cv=kf, scoring="accuracy")
                 acc_mean = np.mean(acc_scores)
 
@@ -204,13 +223,10 @@ def api_train():
             best_model.fit(X, y_enc)
 
             os.makedirs("models", exist_ok=True)
-            with open("models/svm.pkl", "wb") as f:
+            with open(MODEL_PATH, "wb") as f:
                 pickle.dump({"pipeline": best_model, "label_encoder": le}, f)
 
-            # Simpan hasil akhir
-            TRAIN_STATUS["result"] = {
-                "table": results
-            }
+            TRAIN_STATUS["result"] = {"table": results}
 
         except Exception as e:
             TRAIN_STATUS["error"] = str(e)
@@ -221,10 +237,12 @@ def api_train():
     threading.Thread(target=background_train, daemon=True).start()
     return jsonify({"ok": True, "message": "Training dimulai di background"})
 
+
 @app.get("/api/train_status")
 def api_train_status():
-    global TRAIN_STATUS
     return jsonify({"ok": True, **TRAIN_STATUS})
+
+
 
 # ---------- Identifikasi ----------
 @app.post("/api/identify")
@@ -235,14 +253,12 @@ def api_identify():
             return jsonify({"ok": False, "error": "Frame kosong"}), 400
 
         img = b64_to_image(img_b64)
-        if img is None:
-            return jsonify({"ok": False, "error": "Gagal decode gambar"}), 400
 
-        model_path = "models/svm.pkl"
-        if not os.path.exists(model_path):
-            return jsonify({"ok": False, "error": "Model belum dilatih. Jalankan /api/train dulu."}), 400
+        # === FIX: Jika model sudah dihapus, langsung Unknown ===
+        if not os.path.exists(MODEL_PATH):
+            return jsonify({"ok": True, "faces": []})  
 
-        with open(model_path, "rb") as f:
+        with open(MODEL_PATH, "rb") as f:
             model_data = pickle.load(f)
 
         clf = model_data["pipeline"]
@@ -254,63 +270,57 @@ def api_identify():
 
         results = []
         for (top, right, bottom, left), enc in zip(boxes, encs):
-            if hasattr(clf, "predict_proba"):
-                probs = clf.predict_proba([enc])[0]
-                idx = int(np.argmax(probs))
-                confidence = float(np.max(probs)) * 100
-            else:
-                scores = clf.decision_function([enc])[0]
-                idx = int(np.argmax(scores))
-                confidence = float(np.max(scores) / np.sum(np.abs(scores)) * 100)
 
+            probs = clf.predict_proba([enc])[0]
+            idx = int(np.argmax(probs))
+            confidence = float(np.max(probs)) * 100
             name = le.inverse_transform([idx])[0]
 
-            if name not in STABILIZER_HISTORY:
-                STABILIZER_HISTORY[name] = deque(maxlen=MAX_HISTORY)
-            STABILIZER_HISTORY[name].append(confidence)
-
-            smooth_conf = np.mean(STABILIZER_HISTORY[name])
-            stable_name = max(STABILIZER_HISTORY.keys(), key=lambda n: np.mean(STABILIZER_HISTORY[n]))
-            final_name = stable_name if smooth_conf >= THRESHOLD else "Unknown"
+            # Threshold
+            if confidence < THRESHOLD:
+                name = "Unknown"
 
             results.append({
                 "top": int(top), "right": int(right),
                 "bottom": int(bottom), "left": int(left),
-                "name": final_name,
-                "confidence": round(smooth_conf, 1)
+                "name": name,
+                "confidence": round(confidence, 1)
             })
 
         return jsonify({"ok": True, "faces": results})
+
     except Exception as e:
-        print("❌ Error /api/identify:", e)
         return jsonify({"ok": False, "error": str(e)}), 500
-    
+
+
+
+
 # ---------- Dataset Management ----------
 @app.get("/api/embeddings")
 def api_list_embeddings():
-    """Mengembalikan daftar nama yang terdaftar di dataset"""
     try:
         data = list_embeddings()
         names = sorted(set([r["name"] for r in data])) if data else []
         return jsonify({"ok": True, "names": names})
     except Exception as e:
-        print("❌ Error /api/embeddings (GET):", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.delete("/api/embeddings")
-def api_delete_embeddings():
-    """Menghapus embedding berdasarkan nama"""
+def api_delete_embeddings_api():
     try:
         body = request.get_json(force=True)
-        name = body.get("name") if body else None
+        name = body.get("name")
         if not name:
             return jsonify({"ok": False, "error": "Nama wajib diisi"}), 400
+
         deleted = delete_embeddings(by_name=name)
-        return jsonify({"ok": True, "deleted": deleted})
+
+        return jsonify({"ok": True, "deleted": deleted, "model_reset": True})
     except Exception as e:
-        print("❌ Error /api/embeddings (DELETE):", e)
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
 
 
 if __name__ == "__main__":
