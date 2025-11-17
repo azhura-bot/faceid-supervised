@@ -26,7 +26,7 @@ app = Flask(__name__)
 # ==== Konstanta ====
 STABILIZER_HISTORY = {}
 MAX_HISTORY = 5
-THRESHOLD = 70
+THRESHOLD = 50
 DS_LOCK = threading.Lock()
 TRAIN_STATUS = {"running": False, "done": False, "error": None, "result": None}
 
